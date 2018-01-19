@@ -1,13 +1,14 @@
 #' Create tests
 #'
-#' `use_testthat` sets up testing infrastructure, creating
+#' `use_testthat()` sets up testing infrastructure, creating
 #' \file{tests/testthat.R} and \file{tests/testthat/}, and
-#' adding \pkg{testthat} to the suggested packages. `use_test`
+#' adding \pkg{testthat} to the suggested packages. `use_test()`
 #' creates \file{tests/testthat/test-<name>.R} and opens it for editing.
 #'
 #' @export
 #' @inheritParams use_template
 use_testthat <- function() {
+  check_is_package("use_testthat()")
   check_installed("testthat")
 
   use_dependency("testthat", "Suggests")
@@ -34,16 +35,16 @@ use_test <- function(name = NULL, open = TRUE) {
 
   path <- file.path("tests", "testthat", name)
 
-  if (file.exists(file.path(proj_get(), path))) {
+  if (file.exists(proj_path(path))) {
     edit_file(proj_get(), path)
   } else {
-    use_template("test-example.R",
+    use_template(
+      "test-example.R",
       path,
       data = list(test_name = name),
       open = open
     )
   }
-
 
   invisible(TRUE)
 }
@@ -63,7 +64,7 @@ find_test_name <- function(name = NULL) {
   }
 
   if (!rstudioapi::isAvailable()) {
-    stop("Argument `name` is missing, with no default", call. = FALSE)
+    stop("Argument ", code("name"), " is missing, with no default", call. = FALSE)
   }
   active_file <- rstudioapi::getSourceEditorContext()$path
 

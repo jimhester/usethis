@@ -1,3 +1,32 @@
+# usethis 1.2.0
+
+## New functions
+
+* `use_course()` downloads a folder's worth of materials from a ZIP file, with deliberate choices around the default folder name and location. Developed for use at the start of a workshop. Helps participants obtain materials from, e.g., a DropBox folder or GitHub repo (#196).
+
+* `use_blank_slate()` provides a way to opt in to an RStudio workflow where the user's workspace is neither saved nor reloaded between R sessions. Automated for `scope = "project"`. Provides UI instructions for `scope = "user"`, for now (#139).
+
+* `use_tidy_style()` styles an entire project according to <http://style.tidyverse.org> (#72, #197 @lorenzwalthert).
+
+* GitHub conventions common to tidyverse packages are enacted by `use_tidy_contributing()`, `use_tidy_issue_template()`, and `use_tidy_support()` (@batpigandme, #143, #166).
+
+* `proj_path()` forms paths relative to the current usethis project. Note: mostly useful internally. User code should probably use [here](https://krlmlr.github.io/here/) or [rprojroot](https://krlmlr.github.io/rprojroot/) directly (#149).
+
+Other changes
+
+* New projects that don't exhibit other obvious criteria for being a "project" will include a sentinel, empty file named `.here`, so they can be recognized as a project.
+
+* Project launching and switching works on RStudio server (#115, #129).
+
+* `use_template()` is newly exported, so that other packages can provide
+templating functions using this framework (@ijlyttle #120).
+
+* `use_readme_rmd()` and `use_readme_md()` work, in a similar fashion, for projects that are and are not a package (#131, #135).
+
+* `use_readme_rmd()` once again creates a pre-commit git hook, to help keep `README.Rmd` and `README.md` in sync (@PeteHaitch #41).
+
+* Substantial increase in unit test coverage.
+
 # usethis 1.1.0
 
 ## New helpers

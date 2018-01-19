@@ -7,7 +7,6 @@
 #' @param delete_default If `TRUE`, will remove default labels.
 #' @inheritParams use_github_links
 #' @export
-#' @md
 use_github_labels <- function(delete_default = FALSE,
                               auth_token = NULL,
                               host = NULL
@@ -83,9 +82,10 @@ use_github_labels <- function(delete_default = FALSE,
 }
 
 gh_labels <- c(
-  "bug" =     "e02a2a",
-  "feature" = "009800",
-  "reprex" =  "eb6420",
-  "wip" =     "eb6420",
-  "docs" =    "0052cc"
+  "bug" =         "e02a2a",
+  "feature" =     "009800",
+  "reprex" =      "eb6420",
+  "wip" =         "eb6420",
+  "docs" =        "0052cc",
+  "performance" = "fbca04"
 )

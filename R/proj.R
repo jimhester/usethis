@@ -4,6 +4,7 @@ proj_crit <- function() {
   rprojroot::has_file(".here") |
     rprojroot::is_rstudio_project |
     rprojroot::is_r_package |
+    rprojroot::is_git_root |
     rprojroot::is_remake_project |
     rprojroot::is_projectile_project
 }
@@ -13,6 +14,34 @@ proj_find <- function(path = ".") {
     rprojroot::find_root(proj_crit(), path = path),
     error = function(e) NULL
   )
+}
+
+is_proj <- function(path = ".") !is.null(proj_find(path))
+
+is_package <- function(base_path = proj_get()) {
+  res <- tryCatch(
+    rprojroot::find_package_root_file(path = base_path),
+    error = function(e) NULL
+  )
+  !is.null(res)
+}
+
+check_is_package <- function(whos_asking = NULL) {
+  if (is_package()) {
+    return(invisible())
+  }
+
+  message <- paste0(
+    "Project ", value(project_name()), " is not an R package."
+  )
+  if (!is.null(whos_asking)) {
+    message <- paste0(
+      code(whos_asking),
+      " is designed to work with packages. ",
+      message
+    )
+  }
+  stop(message, call. = FALSE)
 }
 
 #' Get and set currently active project
@@ -61,14 +90,5 @@ proj_set <- function(path = ".", force = FALSE) {
   invisible(old)
 }
 
-scoped_temporary_package <- function(dir = tempfile(), env = parent.frame()) {
-  old <- proj$cur
-  withr::defer(proj_set(old), envir = env)
-
-  utils::capture.output(create_package(dir, rstudio = FALSE, open = FALSE))
-  invisible(dir)
-}
-
-.onAttach <- function(...) {
-  proj_set(".")
-}
+## check vectorizaion
+proj_path <- function(...) file.path(proj_get(), ...)

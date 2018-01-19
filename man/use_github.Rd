@@ -32,9 +32,10 @@ GitHub enterprise instance, for example,
 the \code{GITHUB_API_URL} env var.}
 }
 \description{
-\code{use_github} calls \code{\link[=use_git]{use_git()}} if needed, creates
-repo on github, then sets up appropriate git remotes and syncs.
-\code{use_github_links} populates the \code{URL} and \code{BugReports}
+\code{use_github()} requires that your package have a git repository,
+which you can create with \code{\link[=use_git]{use_git()}}, if needed.
+\code{use_github()} then sets up appropriate git remotes and syncs.
+\code{use_github_links()} populates the \code{URL} and \code{BugReports}
 fields with appropriate links (unless they already exist).
 }
 \section{Authentication}{
@@ -64,12 +65,13 @@ parameter.
 
 \examples{
 \dontrun{
-## to use default ssh protocol
-create("testpkg")
-use_github(pkg = "testpkg")
+create_package("test-pkg") # creates package in current working directory
 
-## or use https
-create("testpkg2")
-use_github(pkg = "testpkg2", protocol = "https")
+## now, working inside "test-pkg", initialize git repository
+use_git()
+
+## create github repository and configure as git remote
+use_github()                   ## to use default ssh protocol
+use_github(protocol = "https") ## to use https
 }
 }

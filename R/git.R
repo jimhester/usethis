@@ -4,7 +4,6 @@
 #' to `.gitignore`, and commits all files.
 #'
 #' @param message Message to use for first commit.
-#' @inheritParams use_template
 #' @family git helpers
 #' @export
 #' @examples
@@ -31,28 +30,6 @@ use_git <- function(message = "Initial commit") {
 
 }
 
-# Must be last command run
-restart_rstudio <- function(message = NULL) {
-  if (!in_rstudio(proj_get())) {
-    return(FALSE)
-  }
-
-  if (!interactive())
-    return(FALSE)
-
-  if (!is.null(message)) {
-    todo(message)
-  }
-
-  if (!rstudioapi::hasFun("openProject"))
-    return(FALSE)
-
-  if (yesno(todo_bullet(), " Restart now?"))
-    return(FALSE)
-
-  rstudioapi::openProject(proj_get())
-}
-
 #' Add a git hook.
 #'
 #' Sets up a git hook using specified script. Creates hook directory if
@@ -63,7 +40,6 @@ restart_rstudio <- function(message = NULL) {
 #'   "post-applypatch", "pre-rebase", "post-rewrite", "post-checkout",
 #'   "post-merge", "pre-push", "pre-auto-gc".
 #' @param script Text of script to run
-#' @inheritParams use_template
 #' @family git helpers
 #' @export
 use_git_hook <- function(hook, script) {
@@ -71,12 +47,10 @@ use_git_hook <- function(hook, script) {
     stop("This project doesn't use git", call. = FALSE)
   }
 
-  base_path <- git2r::discover_repository(proj_get())
   use_directory(".git/hooks")
-
   hook_path <- file.path(".git/hooks", hook)
-  write_over(base_path, hook_path, script)
-  Sys.chmod(hook_path, "0744")
+  write_over(proj_get(), hook_path, script)
+  Sys.chmod(proj_path(hook_path), "0744")
 
   invisible()
 }
@@ -85,7 +59,6 @@ use_git_hook <- function(hook, script) {
 #'
 #' @param ignores Character vector of ignores, specified as file globs.
 #' @param directory Directory within `base_path` to set ignores
-#' @inheritParams use_template
 #' @family git helpers
 #' @export
 use_git_ignore <- function(ignores, directory = ".") {

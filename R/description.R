@@ -7,10 +7,8 @@
 #'   potentially overriding the defaults. If `NULL`, retrieved from
 #'   `getOption("usethis.description")`, and (for backward compatibility)
 #'   from `getOption("devtools.desc")`.
-#'   Arguments that take a list
 #' @export
 use_description <- function(fields = NULL) {
-
   name <- project_name()
   check_package_name(name)
 
@@ -29,7 +27,7 @@ build_description <- function(name, fields = list()) {
   # Collapse all vector arguments to single strings
   desc <- vapply(desc_list, function(x) paste(x, collapse = ", "), character(1))
 
-  paste0(names(desc), ": ", desc, "\n", collapse = "")
+  paste0(names(desc), ": ", desc)
 }
 
 build_description_list <- function(name, fields = list()) {
