@@ -1,3 +1,35 @@
+# usethis 1.3.0
+
+* usethis has a website: <http://usethis.r-lib.org> (#217). It includes an article with advice on system setup, for usethis and for R development more generally.
+
+* `edit_*()` functions now return the target path, invisibly (#255).
+
+* `edit_git_ignore(scope = "user")` prefers `~/.gitignore`, but detects an existing `~/.gitignore_global`, if it exists. If a new global gitignore file is created, it is created as `~/.gitignore` and recorded in user's git config as the `core.excludesfile` (#255).
+
+* `create_from_github()` gains several arguments and new functionality. The `protocol` argument lets user convey whether remote URLs should be ssh or https. In the case of "fork and clone", the original repo is added as `upstream` remote. It is now possible -- although rarely necessary -- to directly specify the GitHub PAT, credentials (in git2r form), and GitHub host (#214, #214, #253).
+
+* `use_github_labels()` can create or update the colour of arbitrary GitHub issue labels, defaulting to a set of labels and colours used by the tidyverse packages, which are now exposed via `tidy_labels()`. That set now includes the labels "good first issue" and "help wanted" (#168, #249).
+
+* `appveyor_info()` no longer reverses the repo's URL and image link. Corrects the markdown produced by `use_appveyor_badge()` (#240, @llrs). 
+
+* `use_cran_badge()` uses an HTTPS URL for the CRAN badge image (#235, @jdblischak).
+
+* `create_package()` and `create_project()` return a normalized path, even if target directory does not pre-exist (#227, #228).
+
+## New functions
+
+* `use_git_config()` can set user's Git name or email, globally or locally in a project/repo (#267).
+
+* `browse_github_pat()` goes to the webpage where a GitHub user can create a personal access token (PAT) for the GitHub API. If the user configures a PAT, they can use functions like `create_from_github()` and `use_github()` to easily create and connect GitHub repos to local projects. (#248, #257, @jeroen, via @jennybc).
+
+* `use_version()` increments the version of the active package, including an interactive chooser. `use_dev_version()` is now a special case wrapper around this. (#188, #223, @EmilHvitfeldt).
+
+* `use_tidy_github()` creates a standard set of files that make a GitHub repository more navigable for users and contributors: an issue template, contributing guidelines, support documentation, and a code of conduct. All are now placed in a `.github/` subdirectory (#165, @batpigandme).
+
+* `use_bioc_badge` creates a Bioconductor badge that links to the build report (#271, @LiNk-NY).
+
+* `use_binder_badge()` creates a badge indicating the repository can be launched in an executable environment via [Binder](https://mybinder.org/) (#242, @uribo).
+
 # usethis 1.2.0
 
 ## New functions
@@ -9,8 +41,6 @@
 * `use_tidy_style()` styles an entire project according to <http://style.tidyverse.org> (#72, #197 @lorenzwalthert).
 
 * GitHub conventions common to tidyverse packages are enacted by `use_tidy_contributing()`, `use_tidy_issue_template()`, and `use_tidy_support()` (@batpigandme, #143, #166).
-
-* `proj_path()` forms paths relative to the current usethis project. Note: mostly useful internally. User code should probably use [here](https://krlmlr.github.io/here/) or [rprojroot](https://krlmlr.github.io/rprojroot/) directly (#149).
 
 Other changes
 
@@ -167,5 +197,3 @@ A new class of functions make it easy to edit common config files:
 
 * `use_vignette()` now adds `*.html` and `*.R` to your `.gitgnore` so you
   don't accidentally add in compiled vignette products (#35).
-  
-

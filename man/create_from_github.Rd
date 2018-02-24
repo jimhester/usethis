@@ -2,10 +2,11 @@
 % Please edit documentation in R/create.R
 \name{create_from_github}
 \alias{create_from_github}
-\title{Create a repo and project from GitHub}
+\title{Create a project from a GitHub repo}
 \usage{
 create_from_github(repo, destdir = NULL, fork = NA, rstudio = NULL,
-  open = interactive())
+  open = interactive(), protocol = c("ssh", "https"), credentials = NULL,
+  auth_token = NULL, host = NULL)
 }
 \arguments{
 \item{repo}{GitHub repo specification in this form: \code{owner/reponame}. The
@@ -13,26 +14,42 @@ second part will be the name of the new local repo.}
 
 \item{destdir}{The new folder is stored here. Defaults to user's Desktop.}
 
-\item{fork}{Create and clone a fork? Or clone \code{repo} itself? Defaults to
-\code{TRUE} if you can't push to \code{repo}, \code{FALSE} if you can.}
+\item{fork}{If \code{TRUE}, we create and clone a fork. If \code{FALSE}, we clone
+\code{repo} itself. Will be set to \code{FALSE} if no \code{auth_token} (a.k.a. PAT) is
+provided or preconfigured. Otherwise, if unspecified, defaults to \code{FALSE}
+if you can push to \code{repo} and \code{TRUE} if you cannot. If a fork is created,
+the original target repo is added to the local repo as the \code{upstream}
+remote, using your preferred \code{protocol}, to make it easier to pull upstream
+changes in the future.}
 
-\item{rstudio}{Initiate an \href{https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects}{RStudioProject}?
+\item{rstudio}{Initiate an \href{https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects}{RStudio Project}?
 Defaults to \code{TRUE} if in an RStudio session and project has no
 pre-existing \code{.Rproj} file. Defaults to \code{FALSE} otherwise.}
 
-\item{open}{If \code{TRUE} and in RStudio, new project will be opened in a new
-instance, if possible, or will be switched to, otherwise. If \code{TRUE} and not
-in RStudio, working directory will be set to the new project.}
+\item{open}{If \code{TRUE} and in RStudio, the new project is opened in a new
+instance, if possible, or is switched to, otherwise. If \code{TRUE} and not
+in RStudio, working directory is set to the new project.}
+
+\item{protocol}{transfer protocol, either "ssh" (the default) or "https"}
+
+\item{credentials}{A \code{\link[git2r:cred_ssh_key]{git2r::cred_ssh_key()}} specifying specific ssh
+credentials or \code{NULL} for default ssh key and ssh-agent behaviour.}
+
+\item{auth_token}{Provide a personal access token (PAT) from
+\url{https://github.com/settings/tokens}. If \code{NULL}, will use the logic
+described in \code{\link[gh:gh_whoami]{gh::gh_whoami()}} to look for a token stored in an environment
+variable. Use \code{\link[=browse_github_pat]{browse_github_pat()}} to help set up your PAT.}
+
+\item{host}{GitHub API host to use. Override with the endpoint-root for your
+GitHub enterprise instance, for example,
+"https://github.hostname.com/api/v3"}
 }
 \description{
-Creates a new local Git repository from a repository on GitHub. If you have
-pre-configured a GitHub personal access token (PAT) as described in
-\code{\link[gh:gh_whoami]{gh::gh_whoami()}}, you will get more sensible default behavior for the \code{fork}
-argument. You cannot create a fork without a PAT. Currently only works for
-public repositories. A future version of this function will likely have an
-interface closer to \code{\link[=use_github]{use_github()}}, i.e. more ability to accept credentials
-and more control over the Git configuration of the affected remote or local
-repositories.
+Creates a new local Git repository from a repository on GitHub. It is highly
+recommended that you pre-configure or pass a GitHub personal access token
+(PAT), which is facilitated by \code{\link[=browse_github_pat]{browse_github_pat()}}. In particular, a PAT is
+required in order for \code{create_from_github()} to do \href{https://help.github.com/articles/fork-a-repo/}{"fork and clone"}. It is also required
+by \code{\link[=use_github]{use_github()}}, which connects existing local projects to GitHub.
 }
 \examples{
 \dontrun{

@@ -28,7 +28,7 @@ ask_user <- function(...,
   }
 
   yeses <- c("Yes", "Definitely", "For sure", "Yup", "Yeah", "I agree", "Absolutely")
-  nos <- c("No way", "Not now", "Negative", "No", "Nope", "Hell no")
+  nos <- c("No way", "Not now", "Negative", "No", "Nope", "Absolutely not")
 
   qs <- c(sample(yeses, 1), sample(nos, 2))
   rand <- sample(length(qs))
@@ -50,6 +50,14 @@ check_is_dir <- function(x) {
   }
   if (!is_dir(x)) {
     stop(value(x), " exists but is not a directory.", call. = FALSE)
+  }
+  invisible(x)
+}
+
+check_is_empty <- function(x) {
+  files <- list.files(x)
+  if (length(files) > 0) {
+    stop(value(x), " exists and is not an empty directory", call. = FALSE)
   }
   invisible(x)
 }

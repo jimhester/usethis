@@ -38,7 +38,6 @@ use_template <- function(template,
                          ignore = FALSE,
                          open = FALSE,
                          package = "usethis") {
-
   template_contents <- render_template(template, data, package = package)
   new <- write_over(proj_get(), save_as, template_contents)
 
@@ -47,7 +46,7 @@ use_template <- function(template,
   }
 
   if (open) {
-    edit_file(proj_get(), save_as)
+    edit_file(proj_path(save_as))
   }
 
   invisible(new)
@@ -125,38 +124,79 @@ use_dependency <- function(package, type, version = "*") {
   stopifnot(is_string(type))
 
   if (package != "R" && !requireNamespace(package, quietly = TRUE)) {
-    stop(package, " must be installed before you can take a dependency on it",
-      call. = FALSE)
+    stop(
+      value(package),
+      " must be installed before you can take a dependency on it",
+      call. = FALSE
+    )
   }
 
-  types <- c("Imports", "Depends", "Suggests", "Enhances", "LinkingTo")
+  types <- c("Depends", "Imports", "Suggests", "Enhances", "LinkingTo")
   names(types) <- tolower(types)
   type <- types[[match.arg(tolower(type), names(types))]]
 
   deps <- desc::desc_get_deps(proj_get())
 
-  matching_dep <- deps$package == package & deps$type == type
-  to_add <- !any(matching_dep)
-  to_set <- any(matching_dep & deps$version != version)
+  existing_dep <- deps$package == package
+  existing_type <- deps$type[existing_dep]
 
-  if (to_add) {
+  if (
+    !any(existing_dep) ||
+    (existing_type != "LinkingTo" && type == "LinkingTo")
+  ) {
     done("Adding ", value(package), " to ", field(type), " field in DESCRIPTION")
     desc::desc_set_dep(package, type, version = version, file = proj_get())
-  } else if (to_set) {
-    done("Setting ", value(package), " version to ", field(version), " field in DESCRIPTION")
-    desc::desc_set_dep(package, type, version = version, file = proj_get())
+    return(invisible())
   }
+
+  ## no downgrades
+  if (match(existing_type, types) < match(type, types)) {
+    warning(
+      "Package ", value(package), " is already listed in ",
+      value(existing_type), " in DESCRIPTION, no change made.",
+      call. = FALSE
+    )
+    return(invisible())
+  }
+
+  if (match(existing_type, types) > match(type, types)) {
+    if (existing_type != "LinkingTo") {
+      ## prepare for an upgrade
+      done(
+        "Removing ", value(package), " from ", field(existing_type),
+        " field in DESCRIPTION"
+      )
+      desc::desc_del_dep(package, existing_type, file = proj_get())
+    }
+  } else {
+    ## maybe change version?
+    to_version <- any(existing_dep & deps$version != version)
+    if (to_version) {
+      done(
+        "Setting ", value(package), " version to ",
+        field(version), " field in DESCRIPTION"
+      )
+      desc::desc_set_dep(package, type, version = version, file = proj_get())
+    }
+    return(invisible())
+  }
+
+  done(
+    "Adding ", value(package), " to ", field(type), " field in DESCRIPTION",
+    if (version != "*") ", with version ", field(version)
+  )
+  desc::desc_set_dep(package, type, version = version, file = proj_get())
 
   invisible()
 }
 
-#' Use a directory.
+#' Use a directory
 #'
 #' `use_directory()` creates a directory (if it does not already exist) in the
-#' package root dir. This function powers many of the other `use_` functions
-#' such as [use_data()] and [use_vignette()].
+#' project's top-level directory. This function powers many of the other `use_`
+#' functions such as [use_data()] and [use_vignette()].
 #'
-#' @param path Path of the directory to create (relative to `base_path`).
+#' @param path Path of the directory to create, relative to the project.
 #' @inheritParams use_template
 #'
 #' @export
@@ -166,8 +206,6 @@ use_dependency <- function(package, type, version = "*") {
 #' }
 use_directory <- function(path,
                           ignore = FALSE) {
-
-
   if (!file.exists(proj_path(path))) {
     done("Creating ", value(path, "/"))
   }
@@ -201,22 +239,18 @@ create_directory <- function(base_path, path) {
   target_path
 }
 
-edit_file <- function(base_path, path) {
-  full_path <- path.expand(file.path(base_path, path))
-
-  ## example: path = ".R/snippets/r.snippets" but .R doesn't exist yet
-  if (dirname(path) != ".") {
-    create_directory(base_path, dirname(path))
-  }
+edit_file <- function(path) {
+  full_path <- path.expand(path)
+  create_directory(dirname(dirname(full_path)), basename(dirname(full_path)))
 
   if (!file.exists(full_path)) {
     file.create(full_path)
   }
 
   if (!interactive() || is_testing()) {
-    todo("Edit ", value(path))
+    todo("Edit ", value(basename(path)))
   } else {
-    todo("Modify ", value(path))
+    todo("Modify ", value(basename(path)))
 
     if (rstudioapi::isAvailable() && rstudioapi::hasFun("navigateToFile")) {
       rstudioapi::navigateToFile(full_path)
@@ -224,7 +258,7 @@ edit_file <- function(base_path, path) {
       utils::file.edit(full_path)
     }
   }
-  invisible()
+  invisible(full_path)
 }
 
 view_url <- function(..., open = interactive()) {

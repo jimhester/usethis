@@ -1,10 +1,11 @@
-#' Continuous integration setup
+#' Continuous integration setup and badges
 #'
 #' Sets up continuous integration (CI) services for an R package that is
 #' developed on GitHub. CI services can run `R CMD check` automatically on
 #' various platforms, triggered by each push or pull request. These functions
 #' * Add service-specific configuration files and add them to `.Rbuildignore`.
 #' * Activate a service or give the user a detailed prompt.
+#' * Provide the markdown to insert a badge into README.
 #'
 #' @name ci
 #' @aliases NULL
@@ -59,7 +60,7 @@ uses_travis <- function(base_path = proj_get()) {
 
 check_uses_travis <- function(base_path = proj_get()) {
   if (uses_travis(base_path)) {
-    return()
+    return(invisible())
   }
 
   stop(
@@ -157,20 +158,21 @@ appveyor_activate <- function(browse = interactive()) {
 
 use_appveyor_badge <- function() {
   appveyor <- appveyor_info(proj_get())
-  use_badge("AppVeyor Build Status", appveyor$url, appveyor$img)
+  use_badge("AppVeyor build status", appveyor$url, appveyor$img)
 }
 
 appveyor_info <- function(base_path = proj_get()) {
   gh <- gh::gh_tree_remote(base_path)
-
-  url <- file.path(
+  img <- paste0(
     "https://ci.appveyor.com/api/projects/status/github/",
     gh$username,
+    "/",
     gh$repo,
     "?branch=master&svg=true"
   )
-  img <- file.path(
+  url <- file.path(
     "https://ci.appveyor.com",
+    "project",
     gh$username,
     gh$repo
   )

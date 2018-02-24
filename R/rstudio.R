@@ -1,7 +1,14 @@
-#' Use RStudio
+#' Add RStudio Project infrastructure
 #'
-#' Creates an `.Rproj` file and adds RStudio files to `.gitignore`
-#' and `.Rbuildignore`.
+#' It is likely that you want to use [create_project()] or [create_package()]
+#' instead of `use_rstudio()`! Both `create_*()` functions can add RStudio
+#' Project infrastructure to a pre-existing project or package. `use_rstudio()`
+#' is mostly for internal use or for those creating a usethis-like package for
+#' their organization. It does the following in the current project, often after
+#' executing `proj_set(..., force = TRUE)`:
+#'   * Creates an `.Rproj` file
+#'   * Adds RStudio files to `.gitignore`
+#'   * Adds RStudio files to `.Rbuildignore`, if project is a package
 #'
 #' @export
 use_rstudio <- function() {
@@ -72,7 +79,7 @@ use_blank_slate <- function(scope = c("user", "project")) {
   invisible()
 }
 
-# Is base_path an RStudio Project?
+# Is base_path an RStudio Project or inside an RStudio Project?
 is_rstudio_project <- function(base_path = proj_get()) {
   res <- tryCatch(
     rprojroot::find_rstudio_root_file(path = base_path),

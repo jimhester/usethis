@@ -44,36 +44,47 @@ check_is_package <- function(whos_asking = NULL) {
   stop(message, call. = FALSE)
 }
 
-#' Get and set currently active project
+#' Get and set the active project
 #'
-#' When attached, usethis uses rprojroot to find the project root of the
-#' current working directory. It establishes the project root by looking for
-#' for a `.here` file, an RStudio project, a package `DESCRIPTION`, a
-#' `remake.yml`, or a `.projectile` file. It then stores the project directory
-#' for use for the remainder of the session. If needed, you can manually
-#' override by running `proj_set()`.
+#' @description
+#' Most `use_*()` functions act on the **active project**. If it is unset,
+#' usethis uses [rprojroot](https://krlmlr.github.io/rprojroot/) to find the
+#' project root of the current working directory. It establishes the project
+#' root by looking for a `.here` file, an RStudio Project, a package
+#' `DESCRIPTION`, Git infrastructure, a `remake.yml` file, or a `.projectile`
+#' file. It then stores the active project for use for the remainder of the
+#' session. If needed, you can manually override by running `proj_set()`.
+#'
+#' @description In general, user scripts should not call `usethis::proj_get()`
+#'   or `usethis::proj_set()`. They are internal functions that are exported for
+#'   occasional interactive use. If you need to detect a project
+#'   programmatically in your code, you should probably be using
+#'   [rprojroot](https://krlmlr.github.io/rprojroot/) or its simpler companion,
+#'   [here](https://krlmlr.github.io/here/), directly.
 #'
 #' @param path Path to set.
-#' @param force If `TRUE`, uses this path without checking if any parent
-#'   directories are existing projects.
+#' @param force If `TRUE`, use this path without checking the usual criteria.
+#'   Use sparingly! The main application is to solve a temporary chicken-egg
+#'   problem: you need to set the active project in order to add
+#'   project-signalling infrastructure, such as initialising a Git repo or
+#'   adding a DESCRIPTION file.
 #' @keywords internal
 #' @export
+#' @examples
+#' \dontrun{
+#' ## see the active project
+#' proj_get()
+#'
+#' ## manually set the active project
+#' proj_set("path/to/target/project")
+#' }
 proj_get <- function() {
-  if (!is.null(proj$cur)) {
-    return(proj$cur)
+  # Called for first time so try working directory
+  if (is.null(proj$cur)) {
+    proj_set(".")
   }
 
-  # Try current wd
-  proj_set(".")
-  if (!is.null(proj$cur)) {
-    return(proj$cur)
-  }
-
-  stop(
-    "Current working directory, ", value(normalizePath(".")), ", ",
-    " does not appear to be inside a project or package.",
-    call. = FALSE
-  )
+  proj$cur
 }
 
 #' @export
@@ -81,14 +92,23 @@ proj_get <- function() {
 proj_set <- function(path = ".", force = FALSE) {
   old <- proj$cur
 
+  check_is_dir(path)
+
   if (force) {
     proj$cur <- path
-  } else {
-    proj$cur <- proj_find(path)
+    return(invisible(old))
   }
 
+  new_proj <- proj_find(path)
+  if (is.null(new_proj)) {
+    stop(
+      "Path ", value(path),
+      " does not appear to be inside a project or package.",
+      call. = FALSE
+    )
+  }
+  proj$cur <- new_proj
   invisible(old)
 }
 
-## check vectorizaion
 proj_path <- function(...) file.path(proj_get(), ...)
