@@ -1,10 +1,5 @@
 context("utils")
 
-test_that("check_is_dir() doesn't give false positive for trailing slash", {
-  pwd <- sub("/$", "", getwd())
-  expect_error_free(check_is_dir(paste0(pwd, "/")))
-})
-
 test_that("check_is_named_list() works", {
   l <- list(a = "a", b = 2, c = letters)
   expect_identical(l, check_is_named_list(l))
@@ -14,8 +9,8 @@ test_that("check_is_named_list() works", {
   expect_error(check_is_named_list(list("a", b = 2)), "Names of .+ must be")
 })
 
-test_that("asciify() substitutes", {
-  expect_identical(asciify("aB!d$F+_h"), "ab-d-f-_h")
+test_that("asciify() substitutes non-ASCII but respects case", {
+  expect_identical(asciify("aB!d$F+_h"), "aB-d-F-_h")
 })
 
 test_that("slug() sets file extension, iff 'ext' not aleady the extension", {

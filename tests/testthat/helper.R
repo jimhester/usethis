@@ -1,6 +1,21 @@
 ## attempt to activate a project, which is nice during development
 try(proj_set("."))
 
+## If session temp directory appears to be, or be within, a project, there
+## will be large scale, spurious test failures.
+## The IDE sometimes leaves .Rproj files behind in session temp directory or
+## one of its parents.
+## Delete such files manually.
+session_temp_proj <- proj_find(path_temp())
+if (!is.null(session_temp_proj)) {
+  Rproj_files <- fs::dir_ls(session_temp_proj, glob = "*.Rproj")
+  ui_line(c(
+    "Rproj file(s) found at or above session temp dir:",
+    paste0("* ", Rproj_files),
+    "Expect this to cause spurious test failures."
+  ))
+}
+
 ## putting `pattern` in the package or project name is part of our strategy for
 ## suspending the nested project check during testing
 pattern <- "aaa"
@@ -23,24 +38,29 @@ scoped_temporary_thing <- function(dir = file_temp(pattern = pattern),
                                    thing = c("package", "project")) {
   thing <- match.arg(thing)
   if (fs::dir_exists(dir)) {
-    stop_glue("Target {code('dir')} {value(dir)} already exists.")
+    ui_stop("Target {ui_code('dir')} {ui_path(dir)} already exists.")
   }
 
-  ## avoid proj_get() because it attempts to activate a project
-  old_project <- proj$cur
+  old_project <- proj_get_()
   ## Can't schedule a deferred project reset if calling this from the R
   ## console, which is useful when developing tests
   if (identical(env, globalenv())) {
-    done("Switching to a temporary project!")
+    ui_done("Switching to a temporary project!")
     if (!is.null(old_project)) {
-      todo(
-        "Restore current project with: ",
-        "{code('proj_set(\"', old_project, '\")')}"
+      command <- paste0('proj_set(\"', old_project, '\")')
+      ui_todo(
+        "Restore current project with: {ui_code(command)}"
       )
     }
   } else {
-    withr::defer(proj_set(old_project, force = TRUE, quiet = TRUE), envir = env)
-    withr::defer(fs::dir_delete(dir), envir = env)
+    withr::defer({
+      withr::with_options(
+        list(usethis.quiet = TRUE),
+        proj_set(old_project, force = TRUE)
+      )
+      setwd(old_project)
+      fs::dir_delete(dir)
+    }, envir = env)
   }
 
   withr::local_options(list(usethis.quiet = TRUE))
@@ -49,6 +69,8 @@ scoped_temporary_thing <- function(dir = file_temp(pattern = pattern),
     package = create_package(dir, rstudio = rstudio, open = FALSE),
     project = create_project(dir, rstudio = rstudio, open = FALSE)
   )
+  proj_set(dir)
+  setwd(dir)
   invisible(dir)
 }
 

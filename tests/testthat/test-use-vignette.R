@@ -14,11 +14,17 @@ test_that("use_vignette() requires a `name`", {
   expect_error(use_vignette(), "no default")
 })
 
+test_that("valid_vignette_name() works", {
+  expect_true(valid_vignette_name("perfectly-valid-name"))
+  expect_false(valid_vignette_name("01-test"))
+  expect_false(valid_vignette_name("test.1"))
+})
+
 test_that("use_vignette() does the promised setup", {
   skip_if_not_installed("rmarkdown")
 
   scoped_temporary_package()
-  use_vignette("name")
+  use_vignette("name", "title")
 
   ignores <- readLines(proj_path(".gitignore"), warn = FALSE)
   expect_true("inst/doc" %in% ignores)

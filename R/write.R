@@ -55,10 +55,10 @@ write_union <- function(path, lines, quiet = FALSE) {
   }
 
   if (!quiet) {
-    done("Adding {collapse(value(new))} to {value(proj_rel_path(path))}")
+    ui_done("Adding {ui_value(new)} to {ui_path(path)}")
   }
 
-  all <- union(lines, existing_lines)
+  all <- c(existing_lines, new)
   write_utf8(path, all)
 }
 
@@ -77,27 +77,27 @@ write_over <- function(path, lines, quiet = FALSE) {
 
   if (can_overwrite(path)) {
     if (!quiet) {
-      done("Writing {value(proj_rel_path(path))}")
+      ui_done("Writing {ui_path(path)}")
     }
     write_utf8(path, lines)
   } else {
     if (!quiet) {
-      done("Leaving {value(path)} unchanged")
+      ui_done("Leaving {ui_path(path)} unchanged")
     }
     invisible(FALSE)
   }
 }
 
-write_utf8 <- function(path, lines) {
+write_utf8 <- function(path, lines, append = FALSE) {
   stopifnot(is.character(path))
   stopifnot(is.character(lines))
 
-  con <- file(path, encoding = "utf-8")
+  file_mode <- if (append) "a" else ""
+
+  con <- file(path, open = file_mode, encoding = "utf-8")
   on.exit(close(con), add = TRUE)
 
-  if (length(lines) > 1) {
-    lines <- paste0(lines, "\n", collapse = "")
-  }
+  lines <- paste0(lines, "\n", collapse = "")
   cat(lines, file = con, sep = "")
 
   invisible(TRUE)

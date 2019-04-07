@@ -51,9 +51,12 @@ browse_github_pulls <- function(package = NULL, number = NULL) {
 
 #' @export
 #' @rdname browse-this
-browse_travis <- function(package = NULL) {
+#' @param ext Version of travis to use.
+browse_travis <- function(package = NULL, ext = c("org", "com")) {
   gh <- github_home(package)
-  view_url(sub("github.com", "travis-ci.org", gh))
+  ext <- rlang::arg_match(ext)
+  travis_url <- glue::glue("travis-ci.{ext}")
+  view_url(sub("github.com", travis_url, gh))
 }
 
 #' @export
@@ -78,7 +81,10 @@ github_link <- function(package = NULL) {
   gh_links <- grep("^https?://github.com/", urls, value = TRUE)
 
   if (length(gh_links) == 0) {
-    stop_glue("Package does not provide a GitHub URL.")
+    ui_warn("
+      Package does not provide a GitHub URL.
+      Falling back to GitHub CRAN mirror")
+    return(glue("https://github.com/cran/{package}"))
   }
 
   gsub("/$", "", gh_links[[1]])
@@ -117,9 +123,9 @@ github_home <- function(package = NULL) {
 ## inline a simplified version of rematch2::re_match()
 re_match_inline <- function(text, pattern) {
   match <- regexpr(pattern, text, perl = TRUE)
-  start  <- as.vector(match)
+  start <- as.vector(match)
   length <- attr(match, "match.length")
-  end    <- start + length - 1L
+  end <- start + length - 1L
 
   matchstr <- substring(text, start, end)
   matchstr[ start == -1 ] <- NA_character_
@@ -131,10 +137,9 @@ re_match_inline <- function(text, pattern) {
   )
 
   if (!is.null(attr(match, "capture.start"))) {
-
-    gstart  <- attr(match, "capture.start")
+    gstart <- attr(match, "capture.start")
     glength <- attr(match, "capture.length")
-    gend    <- gstart + glength - 1L
+    gend <- gstart + glength - 1L
 
     groupstr <- substring(text, gstart, gend)
     groupstr[ gstart == -1 ] <- NA_character_

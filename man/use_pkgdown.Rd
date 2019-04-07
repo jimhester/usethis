@@ -2,12 +2,28 @@
 % Please edit documentation in R/pkgdown.R
 \name{use_pkgdown}
 \alias{use_pkgdown}
+\alias{use_pkgdown_travis}
 \title{Use pkgdown}
 \usage{
-use_pkgdown()
+use_pkgdown(config_file = "_pkgdown.yml", destdir = "docs")
+
+use_pkgdown_travis()
+}
+\arguments{
+\item{config_file}{Path to the pkgdown yaml config file}
+
+\item{destdir}{Target directory for pkgdown docs}
 }
 \description{
-\href{https://github.com/hadley/pkgdown}{pkgdown} makes it easy to turn your
-package into a beautiful website. This helper creates \code{_pkgdown.yml}
-and \code{docs/} for you, and adds them to \code{.Rbuildignore}
+\href{https://pkgdown.r-lib.org}{pkgdown} makes it easy to turn your package into
+a beautiful website. There are two helper functions:
+\itemize{
+\item \code{use_pkgdown()}: creates a pkgdown config file and adds the file and
+destination directory to \code{.Rbuildignore}.
+\item \code{use_pkgdown_travis()}: helps you set up pkgdown for automatic deployment
+on Travis-CI.
+}
+}
+\seealso{
+\url{https://pkgdown.r-lib.org/articles/pkgdown.html#configuration}
 }

@@ -2,22 +2,22 @@
 % Please edit documentation in R/ci.R
 \name{ci}
 \alias{use_travis}
-\alias{use_coverage}
 \alias{use_appveyor}
+\alias{use_gitlab_ci}
 \title{Continuous integration setup and badges}
 \usage{
-use_travis(browse = interactive())
-
-use_coverage(type = c("codecov", "coveralls"))
+use_travis(browse = interactive(), ext = c("org", "com"))
 
 use_appveyor(browse = interactive())
+
+use_gitlab_ci()
 }
 \arguments{
 \item{browse}{Open a browser window to enable automatic builds for the
 package.}
 
-\item{type}{Which web service to use for test reporting. Currently supports
-\href{https://codecov.io}{Codecov} and \href{https://coveralls.io}{Coveralls}.}
+\item{ext}{which travis website to use. default to \code{"org"}for
+https://travis-ci.org. Change to \code{"com"} for https://travis-ci.com.}
 }
 \description{
 Sets up continuous integration (CI) services for an R package that is
@@ -36,15 +36,17 @@ configuration file for the \href{https://travis-ci.org/}{Travis CI} continuous
 integration service.
 }
 
-\section{\code{use_coverage()}}{
-
-Adds test coverage reports to a package that is already using Travis CI.
-}
-
 \section{\code{use_appveyor()}}{
 
 Adds a basic \code{appveyor.yml} to the top-level directory of a package. This is
 a configuration file for the \href{https://www.appveyor.com}{AppVeyor} continuous
 integration service for Windows.
+}
+
+\section{\code{use_gitlab_ci()}}{
+
+Adds a basic \code{.gitlab-ci.yml} to the top-level directory of a package. This is
+a configuration file for the \href{https://docs.gitlab.com/ee/ci/}{GitLab CI/CD} continuous
+integration service for GitLab.
 }
 

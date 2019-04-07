@@ -13,14 +13,18 @@
 #' folder is opened in the file manager, e.g. Finder or File Explorer.
 #'
 #' If `url` has no "http" prefix, "https://" is prepended, allowing for even
-#' less typing by the user. Most URL shorteners give HTTPS links and,
-#' anecdotally, we note this appears to work with [bit.ly](https://bitly.com/)
-#' links, even though they are nominally HTTP.
+#' less typing by the user. A `url` of the form `"repo/user"`, is assumed to
+#' refer to a GitHub repository and is expanded appropriately, unless `url`
+#' matches a URL shortener service, currently only `"bit.ly"` or `"rstd.io"`.
+#' Most URL shorteners give HTTPS links and, anecdotally, we note this appears
+#' to work with [bit.ly](https://bitly.com/) links, even though they are
+#' nominally HTTP.
 #'
 #' @param url Link to a ZIP file containing the materials, possibly behind a
-#'   shortlink. Function developed with DropBox and GitHub in mind, but should
-#'   work for ZIP files generally. If no "http" prefix is found, "https://" is
-#'   prepended. See [use_course_details] for more.
+#'   shortlink. Links of the form `"repo/user"` are expanded to the appropriate
+#'   url for a repo on GitHub. Function developed with DropBox and GitHub in
+#'   mind, but should work for ZIP files generally. If no "http" prefix is
+#'   found, "https://" is prepended. See [use_course_details] for more.
 #' @param destdir The new folder is stored here. Defaults to user's Desktop.
 #'
 #' @return Path to the new directory holding the course materials, invisibly.
@@ -38,7 +42,8 @@
 #' ## from CRAN
 #' use_course("https://cran.r-project.org/bin/windows/contrib/3.4/rematch2_2.0.1.zip")
 #'
-#' ## from GitHub, 2 ways
+#' ## from GitHub, 3 ways
+#' use_course("r-lib/rematch2")
 #' use_course("https://github.com/r-lib/rematch2/archive/master.zip")
 #' use_course("https://api.github.com/repos/r-lib/rematch2/zipball/master")
 #' }
@@ -173,10 +178,11 @@ NULL
 download_zip <- function(url, destdir = getwd(), pedantic = FALSE) {
   stopifnot(is_string(url))
   base_path <- destdir
-  check_is_dir(base_path)
+  check_path_is_directory(base_path)
 
   h <- curl::new_handle(noprogress = FALSE, progressfunction = progress_fun)
   tmp <- file_temp("usethis-use-course-")
+  ui_done("Downloading {ui_value(url)}")
   curl::curl_download(
     url, destfile = tmp, quiet = FALSE, mode = "wb", handle = h
   )
@@ -188,30 +194,28 @@ download_zip <- function(url, destdir = getwd(), pedantic = FALSE) {
 
   ## DO YOU KNOW WHERE YOUR STUFF IS GOING?!?
   if (interactive() && pedantic) {
-    message(
-      "A ZIP file named:\n",
-      "  ", value(base_name), "\n",
-      "will be copied to this folder:\n",
-      "  ", value(base_path), "\n",
-      "Prefer a different location? Cancel, try again, and specify ",
-      code("destdir"), ".\n"
-    )
-    if (nope("Is it OK to write this file here?")) {
-      stop_glue("Aborting.")
+    ui_line(c(
+      "The ZIP file, {ui_value(base_name)}, will be copied to  {ui_path(base_path)}.",
+      "Prefer a different location? Cancel, try again, and specify {ui_code('destdir')}"
+    ))
+    if (ui_nope("OK to proceed?")) {
+      ui_stop("Aborting.")
     }
   }
   full_path <- path(base_path, base_name)
 
   if (!can_overwrite(full_path)) {
-    stop_glue("Aborting.")
+    ui_stop("Aborting.")
   }
 
   zip_dest <- if (is.null(destdir)) base_name else full_path
-  done("Downloaded ZIP file to {value(zip_dest)}")
+  ui_done("Copied ZIP file to {ui_path(zip_dest, base_path)}")
   file_move(tmp, full_path)
 }
 
 tidy_unzip <- function(zipfile) {
+  base_path <- path_dir(zipfile)
+
   filenames <- utils::unzip(zipfile, list = TRUE)[["Name"]]
 
   ## deal with DropBox's peculiar habit of including "/" as a file --> drop it
@@ -230,22 +234,23 @@ tidy_unzip <- function(zipfile) {
     target <- path(path_dir(zipfile), td)
     utils::unzip(zipfile, files = filenames, exdir = path_dir(zipfile))
   }
-  done(
-    "Unpacking ZIP file into {value(target)} ",
-    "({length(filenames)} files extracted)"
+  ui_done(
+    "Unpacking ZIP file into {ui_path(target, base_path)} \\
+    ({length(filenames)} files extracted)"
   )
 
   if (interactive()) {
-    if (yep("Shall we delete the ZIP file ", value(zipfile), "?")) {
-      done("Deleting {value(zipfile)}")
+    if (ui_yeah("Shall we delete the ZIP file ({ui_path(zipfile, base_path)})?")) {
+      ui_done("Deleting {ui_path(zipfile, base_path)}")
       file_delete(zipfile)
     }
 
-    if (is_rstudio_project(target) && rstudioapi::hasFun("openProject")) {
-      done("Opening project in RStudio")
+    rproj_path <- dir_ls(target, regexp = "[.]Rproj$")
+    if (length(rproj_path) == 1 && rstudioapi::hasFun("openProject")) {
+      ui_done("Opening project in RStudio")
       rstudioapi::openProject(target, newSession = TRUE)
     } else if (!in_rstudio_server()) {
-      done("Opening {value(target)} in the file manager")
+      ui_done("Opening {ui_path(target, base_path)} in the file manager")
       utils::browseURL(path_real(target))
     }
   }
@@ -256,7 +261,30 @@ tidy_unzip <- function(zipfile) {
 normalize_url <- function(url) {
   stopifnot(is.character(url))
   has_scheme <- grepl("^http[s]?://", url)
-  ifelse(has_scheme, url, paste0("https://", url))
+
+  if (has_scheme) {
+    return(url)
+  }
+
+  if (!is_shortlink(url)) {
+    url <- tryCatch(
+      expand_github(url),
+      error = function(e) url
+    )
+  }
+
+  paste0("https://", url)
+}
+
+is_shortlink <- function(url) {
+  shortlink_hosts <- c("rstd\\.io", "bit\\.ly")
+  any(purrr::map_lgl(shortlink_hosts, grepl, x = url))
+}
+
+expand_github <- function(url) {
+  # mostly to handle errors in the spec
+  repo_spec <- parse_repo_spec(url)
+  glue::glue_data(repo_spec, "github.com/{owner}/{repo}/archive/master.zip")
 }
 
 conspicuous_place <- function() {
@@ -291,10 +319,10 @@ top_directory <- function(filenames) {
 check_is_zip <- function(h) {
   headers <- curl::parse_headers_list(curl::handle_data(h)$headers)
   if (headers[["content-type"]] != "application/zip") {
-    stop_glue(
-      "Download does not have MIME type {value('application/zip')}.\n",
-      "Instead it's {value(headers[['content-type']])}."
-    )
+    ui_stop(c(
+      "Download does not have MIME type {ui_value('application/zip')}.",
+      "Instead it's {ui_value(headers[['content-type']])}."
+    ))
   }
   invisible()
 }
@@ -315,11 +343,10 @@ content_disposition <- function(h) {
 ##  GitHub eg: "attachment; filename=foo-master.zip"
 parse_content_disposition <- function(cd) {
   if (!grepl("^attachment;", cd)) {
-    stop_glue(
-      "{code('Content-Disposition')} header doesn't start with ",
-      "{value('attachment')}.\n",
-      "Actual header: {value(cd)}"
-    )
+    ui_stop(c(
+      "{ui_code('Content-Disposition')} header doesn't start with {ui_value('attachment')}.",
+      "Actual header: {ui_value(cd)}"
+    ))
   }
 
   cd <- sub("^attachment;\\s*", "", cd, ignore.case = TRUE)
@@ -339,8 +366,9 @@ progress_fun <- function(down, up) {
   } else {
     ""
   }
-  if(now > 10000)
-    cat("\r Downloaded:", sprintf("%.2f", now / 2^20), "MB ", pct)
+  if (now > 10000) {
+    cat("\rDownloaded:", sprintf("%.2f", now / 2^20), "MB ", pct)
+  }
   TRUE
 }
 
