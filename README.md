@@ -12,7 +12,7 @@ status](https://ci.appveyor.com/api/projects/status/github/r-lib/usethis?branch=
 [![Codecov test
 coverage](https://codecov.io/gh/r-lib/usethis/branch/master/graph/badge.svg)](https://codecov.io/gh/r-lib/usethis?branch=master)
 [![CRAN
-status](https://www.r-pkg.org/badges/version/usethis)](https://cran.r-project.org/package=usethis)
+status](https://www.r-pkg.org/badges/version/usethis)](https://CRAN.R-project.org/package=usethis)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://www.tidyverse.org/lifecycle/#stable)
 <!-- badges: end -->
@@ -63,27 +63,25 @@ library(usethis)
 # Create a new package -------------------------------------------------
 path <- file.path(tempdir(), "mypkg")
 create_package(path)
-#> ✔ Creating '/tmp/RtmplWepAV/mypkg/'
-#> ✔ Setting active project to '/private/tmp/RtmplWepAV/mypkg'
+#> ✔ Creating '/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg/'
+#> ✔ Setting active project to '/private/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg'
 #> ✔ Creating 'R/'
-#> ✔ Creating 'man/'
 #> ✔ Writing 'DESCRIPTION'
 #> Package: mypkg
 #> Title: What the Package Does (One Line, Title Case)
 #> Version: 0.0.0.9000
 #> Authors@R (parsed):
-#>     * Hadley Wickham <hadley@rstudio.com> [aut, cre]
-#>     * RStudio [cph]
+#>     * First Last <first.last@example.com> [aut, cre] (<https://orcid.org/YOUR-ORCID-ID>)
 #> Description: What the package does (one paragraph).
-#> License: GPL-3
+#> License: What license it uses
 #> Encoding: UTF-8
 #> LazyData: true
 #> ✔ Writing 'NAMESPACE'
 #> ✔ Setting active project to '<no active project>'
 # only needed since this session isn't interactive
 proj_activate(path)
-#> ✔ Changing working directory to '/tmp/RtmplWepAV/mypkg/'
-#> ✔ Setting active project to '/private/tmp/RtmplWepAV/mypkg'
+#> ✔ Changing working directory to '/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg/'
+#> ✔ Setting active project to '/private/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg'
 
 # Modify the description ----------------------------------------------
 use_mit_license("My Name")
@@ -95,7 +93,7 @@ use_mit_license("My Name")
 use_package("MASS", "Suggests")
 #> ✔ Adding 'MASS' to Suggests field in DESCRIPTION
 #> ● Use `requireNamespace("MASS", quietly = TRUE)` to test if package is installed
-#> ● Then use `MASS::fun()` to refer to functions.
+#> ● Then directly refer to functons like `MASS::fun()` (replacing `fun()`).
 
 # Set up various packages ---------------------------------------------
 use_roxygen_md()
@@ -106,14 +104,14 @@ use_roxygen_md()
 use_rcpp()
 #> ✔ Creating 'src/'
 #> ✔ Adding '*.o', '*.so', '*.dll' to 'src/.gitignore'
-#> ● Copy and paste the following lines into '/private/tmp/RtmplWepAV/mypkg/R/mypkg-package.R':
+#> ● Copy and paste the following lines into '/private/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg/R/mypkg-package.R':
 #>   ## usethis namespace: start
 #>   #' @useDynLib mypkg, .registration = TRUE
 #>   ## usethis namespace: end
 #>   NULL
 #> ✔ Adding 'Rcpp' to LinkingTo field in DESCRIPTION
 #> ✔ Adding 'Rcpp' to Imports field in DESCRIPTION
-#> ● Copy and paste the following lines into '/private/tmp/RtmplWepAV/mypkg/R/mypkg-package.R':
+#> ● Copy and paste the following lines into '/private/var/folders/yx/3p5dt4jj1019st0x90vhm9rr0000gn/T/RtmpWNMVxG/mypkg/R/mypkg-package.R':
 #>   ## usethis namespace: start
 #>   #' @importFrom Rcpp sourceCpp
 #>   ## usethis namespace: end
@@ -137,6 +135,8 @@ use_test("my-test")
 #> ✔ Adding 'testthat' to Suggests field in DESCRIPTION
 #> ✔ Creating 'tests/testthat/'
 #> ✔ Writing 'tests/testthat.R'
+#> ● Call `use_test()` to initialize a basic test file and open it for editing.
+#> ✔ Increasing 'testthat' version to '>= 2.1.0' in DESCRIPTION
 #> ✔ Writing 'tests/testthat/test-my-test.R'
 
 x <- 1
@@ -152,5 +152,5 @@ use_git()
 ```
 
 Please note that the usethis project is released with a [Contributor
-Code of Conduct](.github/CODE_OF_CONDUCT.md). By contributing to this
-project, you agree to abide by its terms.
+Code of Conduct](https://usethis.r-lib.org/CODE_OF_CONDUCT.html). By
+contributing to this project, you agree to abide by its terms.

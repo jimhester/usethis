@@ -19,18 +19,18 @@ use_git <- function(message = "Initial commit") {
   git_init()
 
   use_git_ignore(c(".Rhistory", ".RData", ".Rproj.user"))
-  git_ask_commit(message)
+  git_ask_commit(message, untracked = TRUE)
 
   restart_rstudio("A restart of RStudio is required to activate the Git pane")
   invisible(TRUE)
 }
 
-git_ask_commit <- function(message) {
-  if (!interactive()) {
+git_ask_commit <- function(message, untracked = FALSE) {
+  if (!interactive() || !uses_git()) {
     return(invisible())
   }
 
-  paths <- unlist(git_status(), use.names = FALSE)
+  paths <- unlist(git_status(untracked = untracked), use.names = FALSE)
   if (length(paths) == 0) {
     return(invisible())
   }
@@ -349,23 +349,23 @@ have_git2r_credentials <- function() rlang::env_has(git2r_env, "credentials")
 #'
 #' @section SSH credentials:
 #'
-#'   For `protocol = "ssh"`, by default, usethis passes `NULL` credentials
-#'   to git2r. This will work if you have the exact configuration expected by
-#'   git2r:
-#'     1. Your public and private keys are in the default locations,
-#'     `~/.ssh/id_rsa.pub` and `~/.ssh/id_rsa`, respectively.
-#'     1. All the relevant software agrees on the definition of `~/`, i.e.
-#'     your home directory. This is harder than it sounds on Windows.
-#'     1. Your `ssh-agent` is configured to manage your SSH passphrase, if you
-#'     have one. This too can be a problem on Windows.
-#'   Read more about SSH setup in [Happy
-#'   Git](http://happygitwithr.com/ssh-keys.html), especially the
-#'   [troubleshooting
-#'   section](http://happygitwithr.com/ssh-keys.html#ssh-troubleshooting).
+#' For `protocol = "ssh"`, by default, usethis passes `NULL` credentials
+#' to git2r. This will work if you have the exact configuration expected by
+#' git2r:
 #'
-#'   If the `NULL` default doesn't work, you can make `credentials` explicitly
-#'   with [git2r::cred_ssh_key()] and register that with
-#'   `use_git_credentials()` for the rest of the session:
+#' 1. Your public and private keys are in the default locations,
+#' `~/.ssh/id_rsa.pub` and `~/.ssh/id_rsa`, respectively.
+#' 1. All the relevant software agrees on the definition of `~/`, i.e.
+#' your home directory. This is harder than it sounds on Windows.
+#' 1. Your `ssh-agent` is configured to manage your SSH passphrase, if you have
+#' one. This too can be a problem on Windows. Read more about SSH setup in
+#' [Happy Git and GitHub for the useR](https://happygitwithr.com/ssh-keys.html),
+#' especially the [troubleshooting
+#' section](https://happygitwithr.com/ssh-keys.html#ssh-troubleshooting).
+#'
+#' If the `NULL` default doesn't work, you can make `credentials` explicitly
+#' with [git2r::cred_ssh_key()] and register that with
+#' `use_git_credentials()` for the rest of the session:
 #' ```
 #' my_cred <- git2r::cred_ssh_key(
 #'    publickey  = "path/to/your/id_rsa.pub",
@@ -375,8 +375,8 @@ have_git2r_credentials <- function() rlang::env_has(git2r_env, "credentials")
 #' )
 #' use_git_credentials(credentials = my_cred)
 #' ```
-#'   For the remainder of the session, `git_credentials()` will return
-#'   `my_cred`.
+#' For the remainder of the session, `git_credentials()` will return
+#' `my_cred`.
 #'
 #' @section HTTPS credentials:
 #'
@@ -407,7 +407,7 @@ have_git2r_credentials <- function() rlang::env_has(git2r_env, "credentials")
 #'   [git2r::cred_env()], [git2r::cred_ssh_key()], [git2r::cred_token()], or
 #'   [git2r::cred_user_pass()].
 #'
-#' @return Either `NULL` or a git2r credential object, invisibly. I.e.,
+#' @return Either `NULL` or a git2r credential object, invisibly, i.e.
 #'   something to be passed to git2r as `credentials`.
 #' @export
 #'
@@ -447,8 +447,8 @@ use_git_credentials <- function(credentials) {
 #' git/GitHub sitrep
 #'
 #' Get a situation report on your current git/GitHub status. Useful for
-#' diagnosing problems.
-#'
+#' diagnosing problems. [git_vaccinate()] adds some basic R- and RStudio-related
+#' entries to the user-level git ignore file.
 #' @export
 #' @examples
 #' git_sitrep()
@@ -478,14 +478,15 @@ git_sitrep <- function() {
   have_token <- have_github_token()
   if (have_token) {
     kv_line("Personal access token", "<found in env var>")
-    who <- github_user()
-    if (is.null(who)) {
-      ui_oops("Token is invalid.")
-      have_token <- FALSE
-    } else {
-      kv_line("User", who$login)
-      kv_line("Name", who$name)
-    }
+    tryCatch(
+      {
+        who <- gh::gh_whoami(github_token())
+        kv_line("User", who$login)
+        kv_line("Name", who$name)
+      },
+      http_error_401 = function(e) ui_oops("Token is invalid."),
+      error = function(e) ui_oops("Can't validate token. Is the network reachable?")
+    )
   } else {
     kv_line("Personal access token", NULL)
   }
