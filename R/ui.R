@@ -271,7 +271,7 @@ cat_line <- function(..., quiet = getOption("usethis.quiet", default = FALSE)) {
     return(invisible())
   }
 
-  lines <- paste0(...)
+  lines <- paste0(..., "\n")
   rlang::inform(lines)
 
   invisible()
