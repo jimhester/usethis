@@ -11,22 +11,26 @@
 #' use_git()
 #' }
 use_git <- function(message = "Initial commit") {
-  if (uses_git()) {
-    return(invisible())
+  needs_init <- !uses_git()
+  if (needs_init) {
+    ui_done("Initialising Git repo")
+    git_init()
   }
 
-  ui_done("Initialising Git repo")
-  git_init()
-
   use_git_ignore(c(".Rhistory", ".RData", ".Rproj.user"))
-  git_ask_commit(message, untracked = TRUE)
+  if (git_uncommitted(untracked = TRUE)) {
+    git_ask_commit(message, untracked = TRUE)
+  }
 
-  restart_rstudio("A restart of RStudio is required to activate the Git pane")
+  if (needs_init) {
+    restart_rstudio("A restart of RStudio is required to activate the Git pane")
+  }
+
   invisible(TRUE)
 }
 
 git_ask_commit <- function(message, untracked = FALSE) {
-  if (!interactive() || !uses_git()) {
+  if (!is_interactive() || !uses_git()) {
     return(invisible())
   }
 
@@ -49,13 +53,22 @@ git_ask_commit <- function(message, untracked = FALSE) {
   ))
 
   if (ui_yeah("Is it ok to commit them?")) {
-    ui_done("Adding files")
-    repo <- git_repo()
-    git2r::add(repo, paths)
-    ui_done("Commit with message {ui_value(message)}")
-    git2r::commit(repo, message)
+    git_commit(paths, message)
   }
   invisible()
+}
+
+git_commit <- function(paths, message) {
+  ui_done("Adding files")
+  repo <- git_repo()
+  git2r::add(repo, paths)
+  ui_done("Commit with message {ui_value(message)}")
+  git2r::commit(repo, message)
+  rstudio_git_tickle()
+}
+
+git_has_commits <- function() {
+  length(git2r::commits(n = 1, repo = git_repo())) > 0
 }
 
 #' Add a git hook
@@ -90,6 +103,7 @@ use_git_hook <- function(hook, script) {
 #' @export
 use_git_ignore <- function(ignores, directory = ".") {
   write_union(proj_path(directory, ".gitignore"), ignores)
+  rstudio_git_tickle()
 }
 
 #' Configure Git
@@ -168,7 +182,7 @@ use_git_config <- function(scope = c("user", "project"), ...) {
 git_protocol <- function() {
   protocol <- getOption(
     "usethis.protocol",
-    default = if (interactive()) NA else "ssh"
+    default = if (is_interactive()) NA else "ssh"
   )
 
   ## this is where a user-supplied protocol gets checked, because
@@ -213,8 +227,7 @@ use_git_protocol <- function(protocol) {
 }
 
 choose_protocol <- function() {
-  ## intercept with our internal interactive()
-  if (!interactive()) {
+  if (!is_interactive()) {
     return(invisible())
   }
   choices <- c(
@@ -291,7 +304,7 @@ choose_protocol <- function() {
 use_git_remote <- function(name = "origin", url, overwrite = FALSE) {
   stopifnot(is_string(name))
   stopifnot(is.null(url) || is_string(url))
-  stopifnot(rlang::is_true(overwrite) || rlang::is_false(overwrite))
+  stopifnot(is_true(overwrite) || is_false(overwrite))
 
   repo <- git_repo()
   remotes <- git_remotes()
@@ -326,7 +339,7 @@ git_remotes <- function() {
 }
 
 git2r_env <- new.env(parent = emptyenv())
-have_git2r_credentials <- function() rlang::env_has(git2r_env, "credentials")
+have_git2r_credentials <- function() env_has(git2r_env, "credentials")
 
 #' Produce or register git credentials
 #'
@@ -453,14 +466,24 @@ use_git_credentials <- function(credentials) {
 #' @examples
 #' git_sitrep()
 git_sitrep <- function() {
-  # git user ------------------------------------------------------------------
-  hd_line("Git user")
+  # git global ----------------------------------------------------------------
+  hd_line("Git config (global)")
   kv_line("Name", git_config_get("user.name", global = TRUE))
   kv_line("Email", git_config_get("user.email", global = TRUE))
   ## TODO: forward info from the credentials package once we start using it
   ## and it reflects the credentials situation usethis will actually meet
   ## e.g., git version, HTTPS credential helpers, SSH keys, etc.
   kv_line("Vaccinated", git_vaccinated())
+
+  # git project ---------------------------------------------------------------
+  if (proj_active() && uses_git()) {
+    local <- git2r::config(git_repo())$local
+    if (any(c("user.name", "user.email") %in% names(local))) {
+      hd_line("Git config (project)")
+      kv_line("Name", git_config_get("user.name"))
+      kv_line("Email", git_config_get("user.email"))
+    }
+  }
 
   # usethis + git2r ----------------------------------------------------------
   hd_line("usethis + git2r")
@@ -485,6 +508,15 @@ git_sitrep <- function() {
         kv_line("Name", who$name)
       },
       http_error_401 = function(e) ui_oops("Token is invalid."),
+      error = function(e) ui_oops("Can't validate token. Is the network reachable?")
+    )
+    tryCatch(
+      {
+        emails <- unlist(gh::gh("/user/emails", .token = github_token()))
+        emails <- emails[names(emails) == "email"]
+        kv_line("Email(s)", emails)
+      },
+      http_error_404 = function(e) kv_line("Email(s)", "<unknown>"),
       error = function(e) ui_oops("Can't validate token. Is the network reachable?")
     )
   } else {
@@ -513,7 +545,7 @@ git_sitrep <- function() {
   ## TODO: rework when ui_*() functions make it possible to do better
   branch <- if (is.null(branch)) "<unset>" else branch
   tracking_branch <- if (is.null(tracking_branch)) "<unset>" else tracking_branch
-  cat_line("* ", "Local branch -> remote tracking branch: ",
+  ui_inform("* ", "Local branch -> remote tracking branch: ",
            ui_value(branch), " -> ", ui_value(tracking_branch))
 
   # PR outlook -------------------------------------------------------------
@@ -611,7 +643,7 @@ git_vaccinated <- function() {
     return(FALSE)
   }
 
-  lines <- readLines(path)
+  lines <- read_utf8(path)
   all(git_global_ignore %in% lines)
 }
 

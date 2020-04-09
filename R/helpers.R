@@ -46,21 +46,22 @@ use_dependency <- function(package, type, min_version = NULL) {
   existing_dep <- deps$package == package
   existing_type <- deps$type[existing_dep]
   existing_ver <- deps$version[existing_dep]
-  is_linking_to <- (existing_type != "LinkingTo" && type == "LinkingTo") ||
-    (existing_type == "LinkingTo" && type != "LinkingTo")
+  is_linking_to <- (existing_type != "LinkingTo" & type == "LinkingTo") |
+    (existing_type == "LinkingTo" & type != "LinkingTo")
 
   # No existing dependency, so can simply add
-  if (!any(existing_dep) || is_linking_to) {
+  if (!any(existing_dep) || any(is_linking_to)) {
     ui_done("Adding {ui_value(package)} to {ui_field(type)} field in DESCRIPTION")
     desc::desc_set_dep(package, type, version = version, file = proj_get())
     return(invisible())
   }
 
+  existing_type <- setdiff(existing_type, "LinkingTo")
   delta <- sign(match(existing_type, types) - match(type, types))
   if (delta < 0) {
     # don't downgrade
     ui_warn(
-      "Package {ui_value(package)} is already listed in\\
+      "Package {ui_value(package)} is already listed in \\
       {ui_value(existing_type)} in DESCRIPTION, no change made."
     )
   } else if (delta == 0 && !is.null(min_version)) {
@@ -77,7 +78,7 @@ use_dependency <- function(package, type, min_version = NULL) {
     if (existing_type != "LinkingTo") {
       ui_done(
         "
-        Moving {ui_value(package)} from {ui_field(existing_type)} to {ui_field(type)}\\
+        Moving {ui_value(package)} from {ui_field(existing_type)} to {ui_field(type)} \\
         field in DESCRIPTION
         "
       )
@@ -94,7 +95,7 @@ version_spec <- function(x) {
   numeric_version(x)
 }
 
-view_url <- function(..., open = interactive()) {
+view_url <- function(..., open = is_interactive()) {
   url <- paste(..., sep = "/")
   if (open) {
     ui_done("Opening URL {ui_value(url)}")
@@ -104,3 +105,4 @@ view_url <- function(..., open = interactive()) {
   }
   invisible(url)
 }
+

@@ -7,7 +7,7 @@
 #'   section](https://r-pkgs.org/release.html#important-files) of [R
 #'   Packages](https://r-pkgs.org).
 #' @export
-use_news_md <- function(open = interactive()) {
+use_news_md <- function(open = rlang::is_interactive()) {
   check_uncommitted_changes()
 
   use_template(
@@ -25,7 +25,7 @@ use_news_heading <- function(version) {
     return(invisible())
   }
 
-  news <- readLines(news_path, encoding = "UTF-8")
+  news <- read_utf8(news_path)
   title <- glue("# {project_name()} {version}")
 
   if (title == news[[1]]) {

@@ -4,11 +4,14 @@
 \alias{use_rstudio}
 \title{Add RStudio Project infrastructure}
 \usage{
-use_rstudio()
+use_rstudio(line_ending = c("posix", "windows"))
+}
+\arguments{
+\item{line_ending}{Line ending}
 }
 \description{
 It is likely that you want to use \code{\link[=create_project]{create_project()}} or \code{\link[=create_package]{create_package()}}
-instead of \code{use_rstudio()}! Both \code{create_*()} functions can add RStudio
+instead of \code{use_rstudio()}! Both \verb{create_*()} functions can add RStudio
 Project infrastructure to a pre-existing project or package. \code{use_rstudio()}
 is mostly for internal use or for those creating a usethis-like package for
 their organization. It does the following in the current project, often after

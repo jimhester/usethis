@@ -22,7 +22,10 @@
 #' use_dev_package("glue")
 #' }
 use_package <- function(package, type = "Imports", min_version = NULL) {
-  refuse_package(package, verboten = "tidyverse")
+
+  if (type == "Imports") {
+    refuse_package(package, verboten = "tidyverse")
+  }
 
   use_dependency(package, type, min_version = min_version)
   how_to_use(package, type)
@@ -48,7 +51,7 @@ use_remote <- function(package) {
     return(invisible())
   }
 
-  package_remote <- package_remote(package)
+  package_remote <- package_remote(desc::desc(package = package))
   ui_done(
     "Adding {ui_value(package_remote)} to {ui_field('Remotes')} field in DESCRIPTION"
   )
@@ -59,24 +62,34 @@ use_remote <- function(package) {
 
 # Helpers -----------------------------------------------------------------
 
-## TO DO: make this less hard-wired to GitHub?
-package_remote <- function(package) {
-  desc <- desc::desc(package = package)
-  github_info <- desc$get(c("GithubUsername", "GithubRepo"))
+package_remote <- function(desc) {
+  package <- desc$get_field("Package")
+  remote <- as.list(desc$get(c("RemoteType", "RemoteUsername", "RemoteRepo")))
 
-  if (any(is.na(github_info))) {
-    ui_stop("{ui_value(package)} was not installed from GitHub.")
+  is_valid_remote <- all(purrr::map_lgl(remote, ~ is_string(.x) && !is.na(.x)))
+  if (!is_valid_remote) {
+    ui_stop("{ui_value(package)} was not installed from a supported remote.")
   }
 
-  glue_collapse(github_info, sep = "/")
+  # GitHub remotes don't get the 'RemoteType::' prefix
+  if (identical(remote$RemoteType, "github")) {
+    paste0(remote$RemoteUsername, "/", remote$RemoteRepo)
+  } else {
+    paste0(remote$RemoteType, "::", remote$RemoteUsername, "/", remote$RemoteRepo)
+  }
 }
 
 refuse_package <- function(package, verboten) {
   if (identical(package, verboten)) {
+    code <- glue("use_package(\"{package}\", type = \"depends\")")
     ui_stop(
       "{ui_value(package)} is a meta-package and it is rarely a good idea to \\
       depend on it. Please determine the specific underlying package(s) that \\
-      offer the function(s) you need and depend on that instead."
+      offer the function(s) you need and depend on that instead. \\
+      For data analysis projects that use a package structure but do not implement \\
+      a formal R package, adding {ui_value(package)} to Depends is a \\
+      reasonable compromise. Call {ui_code(code)} to achieve this.
+      "
     )
   }
   invisible(package)

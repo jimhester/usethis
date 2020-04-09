@@ -22,7 +22,8 @@ use_release_issue <- function(version = NULL) {
     return(invisible(FALSE))
   }
 
-  checklist <- release_checklist(version)
+  on_cran <- !is.null(cran_version())
+  checklist <- release_checklist(version, on_cran)
 
   issue <- gh::gh("POST /repos/:owner/:repo/issues",
     owner = github_owner(),
@@ -34,11 +35,14 @@ use_release_issue <- function(version = NULL) {
   view_url(issue$html_url)
 }
 
-release_checklist <- function(version) {
+release_checklist <- function(version, on_cran) {
   type <- release_type(version)
-  on_cran <- !is.null(cran_version())
+  cran_results <- cran_results_url()
   has_src <- dir_exists(proj_path("src"))
   has_news <- file_exists(proj_path("NEWS.md"))
+  has_pkgdown <- file_exists(proj_path("_pkgdown.yml"))
+  has_readme <- file_exists(proj_path("README.Rmd"))
+  has_extra <- exists("release_bullets", parent.env(globalenv()))
 
   todo <- function(x, cond = TRUE) {
     x <- glue(x, .envir = parent.frame())
@@ -51,33 +55,36 @@ release_checklist <- function(version) {
     "",
     todo("Check that description is informative", !on_cran),
     todo("Check licensing of included files", !on_cran),
+    todo("`devtools::build_readme()`", has_readme),
     todo("`usethis::use_cran_comments()`", !on_cran),
-    todo("`devtools::check()`"),
+    todo("Check [current CRAN check results]({cran_results})", on_cran),
+    todo("`devtools::check(remote = TRUE, manual = TRUE)`"),
     todo("`devtools::check_win_devel()`"),
     todo("`rhub::check_for_cran()`"),
     todo("`rhub::check(platform = 'ubuntu-rchk')`", has_src),
     todo("`rhub::check_with_sanitizers()`", has_src),
     todo("`revdepcheck::revdep_check(num_workers = 4)`", on_cran),
+    todo("Update `cran-comments.md`"),
     todo("[Polish NEWS](https://style.tidyverse.org/news.html#news-release)", on_cran),
-    todo("Polish pkgdown reference index"),
+    todo("Review pkgdown reference index for, e.g., missing topics", has_pkgdown),
     todo("Draft blog post", type != "patch"),
+    if (has_extra) paste0("* [ ] ", get("release_bullets", parent.env(globalenv()))()),
     "",
     "Submit to CRAN:",
     "",
     todo("`usethis::use_version('{type}')`"),
-    todo("Update `cran-comments.md`"),
     todo("`devtools::submit_cran()`"),
     todo("Approve email"),
     "",
     "Wait for CRAN...",
     "",
     todo("Accepted :tada:"),
+    todo("`usethis::use_news_md()`", !has_news),
     todo("`usethis::use_github_release()`"),
     todo("`usethis::use_dev_version()`"),
-    todo("`usethis::use_news_md()`", !has_news),
     todo("Update install instructions in README", !on_cran),
     todo("Finish blog post", type != "patch"),
-    todo("Tweet"),
+    todo("Tweet", type != "patch"),
     todo("Add link to blog post in pkgdown news menu", type != "patch")
   )
 }
@@ -114,6 +121,12 @@ use_github_release <- function(host = NULL,
   check_branch_pushed()
   check_github_token(auth_token)
 
+  path <- proj_path("NEWS.md")
+  if (!file_exists(path)) {
+    ui_stop("{ui_path('NEWS.md')} not found")
+  }
+  news <- news_latest(read_utf8(path))
+
   package <- package_data()
 
   release <- gh::gh(
@@ -121,8 +134,9 @@ use_github_release <- function(host = NULL,
     owner = github_owner(),
     repo = github_repo(),
     tag_name = paste0("v", package$Version),
+    target_commitish = git_commit_find()$sha,
     name = paste0(package$Package, " ", package$Version),
-    body = news_latest(),
+    body = news,
     draft = TRUE,
     .api_url = host,
     .token = auth_token
@@ -142,18 +156,15 @@ cran_version <- function(package = project_name(),
   }
 }
 
+cran_results_url <- function(package = project_name()) {
+  glue("https://cran.rstudio.org/web/checks/check_results_{package}.html")
+}
 
-news_latest <- function() {
-  path <- proj_path("NEWS.md")
-  if (!file_exists(path)) {
-    ui_stop("{ui_path(path)} not found")
-  }
-
-  lines <- readLines(path)
+news_latest <- function(lines) {
   headings <- which(grepl("^#\\s+", lines))
 
   if (length(headings) == 0) {
-    ui_stop("No top-level headings found in {ui_value(path)}")
+    ui_stop("No top-level headings found in {ui_value('NEWS.md')}")
   } else if (length(headings) == 1) {
     news <- lines[seq2(headings + 1, length(lines))]
   } else {
@@ -162,7 +173,11 @@ news_latest <- function() {
 
   # Remove leading and trailing empty lines
   text <- which(news != "")
+  if (length(text) == 0) {
+    return("")
+  }
+
   news <- news[text[[1]]:text[[length(text)]]]
 
-  paste(news, "\n", collapse = "")
+  paste0(news, "\n", collapse = "")
 }

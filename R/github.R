@@ -58,7 +58,7 @@ use_github <- function(organisation = NULL,
   repo_desc <- project_data()$Title %||% ""
   repo_desc <- gsub("\n", " ", repo_desc)
 
-  if (interactive()) {
+  if (is_interactive()) {
     ui_todo("Check title and description")
     ui_code_block(
       "
@@ -220,7 +220,7 @@ use_github_links <- function(auth_token = github_token(),
 #' edit_r_environ()
 #' ## which helps you store the PAT as an env var
 #' }
-browse_github_token <- function(scopes = c("repo", "gist"),
+browse_github_token <- function(scopes = c("repo", "gist", "user:email"),
                                 description = "R:GITHUB_PAT",
                                 host = "https://github.com") {
   scopes <- glue_collapse(scopes, ",")
@@ -232,7 +232,7 @@ browse_github_token <- function(scopes = c("repo", "gist"),
   ui_todo(
     "Call {ui_code('usethis::edit_r_environ()')} to open {ui_path('.Renviron')}."
   )
-  ui_todo("Store your PAT with a line like:")
+  ui_todo("Store your PAT (personal access token) with a line like:")
   ui_code_block("GITHUB_PAT=xxxyyyzzz")
   ui_todo("Make sure {ui_value('.Renviron')} ends with a newline!")
   invisible()
@@ -320,6 +320,11 @@ have_github_token <- function(auth_token = github_token()) {
 
 check_github_token <- function(auth_token = github_token(),
                                allow_empty = FALSE) {
+
+  if (!is_online("github.com")) {
+    ui_stop("Internet connection is not available")
+  }
+
   if (allow_empty && !have_github_token(auth_token)) {
     return(invisible(auth_token))
   }

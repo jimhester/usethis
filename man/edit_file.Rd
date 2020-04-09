@@ -4,10 +4,12 @@
 \alias{edit_file}
 \title{Open file for editing}
 \usage{
-edit_file(path)
+edit_file(path, open = rlang::is_interactive())
 }
 \arguments{
 \item{path}{Path to target file.}
+
+\item{open}{Whether to open the file for interactive editing.}
 }
 \value{
 Target path, invisibly.

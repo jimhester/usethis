@@ -21,7 +21,7 @@
 #' use_readme_rmd()
 #' use_readme_md()
 #' }
-use_readme_rmd <- function(open = interactive()) {
+use_readme_rmd <- function(open = rlang::is_interactive()) {
   check_installed("rmarkdown")
 
   data <- project_data()
@@ -37,7 +37,7 @@ use_readme_rmd <- function(open = interactive()) {
     if (is_package()) "package-README" else "project-README",
     "README.Rmd",
     data = data,
-    ignore = TRUE,
+    ignore = is_package(),
     open = open
   )
   if (!new) return(invisible(FALSE))
@@ -54,7 +54,7 @@ use_readme_rmd <- function(open = interactive()) {
 
 #' @export
 #' @rdname use_readme_rmd
-use_readme_md <- function(open = interactive()) {
+use_readme_md <- function(open = rlang::is_interactive()) {
   use_template(
     if (is_package()) "package-README" else "project-README",
     "README.md",

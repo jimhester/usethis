@@ -22,10 +22,30 @@ git_pull <- function(remote_branch = git_branch_tracking_FIXME(),
   )
   mr <- git2r::merge(repo, remote_branch)
   if (isTRUE(mr$conflicts)) {
-    ui_stop("Merge conflict! Please resolve before continuing")
+    git_conflict_report()
   }
 
   invisible()
+}
+
+git_conflict_report <- function() {
+  st <- git_status(staged = FALSE, untracked = FALSE)$unstaged
+  conflicted <- unname(st[names(st) == "conflicted"])
+  if (length(conflicted) == 0) {
+    return(invisible())
+  }
+
+  conflicted_path <- purrr::map_chr(conflicted, ui_path)
+  ui_line(c(
+    "There are {length(conflicted)} conflicted files:",
+    paste0("* ", conflicted_path)
+  ))
+  ui_silence(purrr::walk(conflicted, edit_file))
+
+  ui_stop(c(
+    "Please fix, stage, and commit to continue",
+    "Or run {ui_code('git merge --abort')} in the terminal"
+  ))
 }
 
 git_status <- function(...) {
@@ -136,16 +156,21 @@ git_branch_create <- function(branch, commit = NULL) {
 git_branch_switch <- function(branch) {
   old <- git_branch_current()
   git2r::checkout(git_repo(), branch)
+  rstudio_git_tickle()
   invisible(old)
 }
 
 git_branch_compare <- function(branch = git_branch_name()) {
   repo <- git_repo()
+  auth_token <- check_github_token(allow_empty = TRUE)
+  protocol <- github_remote_protocol()
+  credentials <- git_credentials(protocol, auth_token)
 
   remref <- git_branch_tracking_FIXME(branch)
   git2r::fetch(
     repo,
     name = remref_remote(remref),
+    credentials = credentials,
     refspec = branch,
     verbose = FALSE
   )
@@ -173,6 +198,7 @@ git_branch_push <- function(branch = git_branch_name(),
     force = force,
     credentials = credentials
   )
+  rstudio_git_tickle()
 }
 
 git_branch_remote <- function(branch = git_branch_name()) {
@@ -221,7 +247,11 @@ check_uncommitted_changes <- function(path = proj_get(), untracked = FALSE) {
   }
 
   if (uses_git(path) && git_uncommitted(path, untracked = untracked)) {
-    ui_stop("Uncommited changes. Please commit to git before continuing.")
+    if (ui_yeah("There are uncommitted changes. Do you want to proceed anyway?")) {
+      return()
+    } else {
+      ui_stop("Uncommitted changes. Please commit to git before continuing.")
+    }
   }
 }
 
@@ -315,7 +345,8 @@ git_config_get <- function(name, global = FALSE) {
 git_config_set <- function(name, value, global = FALSE) {
   old <- git_config_get(name, global = global)
 
-  config <- list(git_repo(), value, global)
+  repo <- if (uses_git()) git_repo() else NULL
+  config <- list(repo, value, global)
   names(config) <- c("repo", name, "global")
   do.call(git2r::config, config)
 
