@@ -42,8 +42,11 @@ create_local_thing <- function(dir = file_temp(pattern = pattern),
     ui_silence({
       proj_set(old_project, force = TRUE)
     })
-    setwd(old_project)
-    fs::dir_delete(dir)
+    try(silent = TRUE, {
+        setwd(old_project)
+        fs::dir_delete(dir)
+      }
+    )
   }, envir = env)
 
   ui_silence({
